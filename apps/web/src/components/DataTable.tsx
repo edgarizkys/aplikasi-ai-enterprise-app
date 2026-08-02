@@ -1,0 +1,1 @@
+// DataTable.tsx - Fallback template (LLM unavailable)
