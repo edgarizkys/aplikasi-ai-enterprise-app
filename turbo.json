@@ -1,0 +1,156 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "version": "1",
+  "globalDependencies": [
+    "**/.env.local",
+    "**/.env",
+    "turbo.json"
+  ],
+  "globalEnv": [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "JWT_SECRET",
+    "JWT_REFRESH_SECRET",
+    "NEXT_PUBLIC_API_URL"
+  ],
+  "tasks": {
+    "build": {
+      "description": "Build application",
+      "cache": true,
+      "inputs": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "public/**/*",
+        "tsconfig.json",
+        "next.config.js",
+        "tailwind.config.ts"
+      ],
+      "outputs": [
+        ".next/**",
+        "dist/**"
+      ],
+      "dependsOn": [
+        "^build"
+      ]
+    },
+    "dev": {
+      "description": "Start development server",
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "description": "Run ESLint",
+      "cache": true,
+      "inputs": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        ".eslintrc.json"
+      ],
+      "outputs": []
+    },
+    "type-check": {
+      "description": "Run TypeScript type checking",
+      "cache": true,
+      "inputs": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "tsconfig.json"
+      ],
+      "outputs": []
+    },
+    "test": {
+      "description": "Run tests",
+      "cache": true,
+      "inputs": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "src/**/*.test.ts",
+        "src/**/*.test.tsx",
+        "jest.config.js",
+        "tsconfig.json"
+      ],
+      "outputs": [
+        "coverage/**"
+      ]
+    },
+    "test:watch": {
+      "description": "Run tests in watch mode",
+      "cache": false,
+      "persistent": true
+    },
+    "db:migrate": {
+      "description": "Run database migrations",
+      "cache": false,
+      "inputs": [
+        "prisma/migrations/**",
+        "prisma/schema.prisma"
+      ]
+    },
+    "db:seed": {
+      "description": "Seed database",
+      "cache": false,
+      "inputs": [
+        "prisma/seed.ts"
+      ],
+      "dependsOn": [
+        "db:migrate"
+      ]
+    },
+    "generate": {
+      "description": "Generate code artifacts",
+      "cache": true,
+      "inputs": [
+        "prisma/schema.prisma"
+      ],
+      "outputs": [
+        "node_modules/.prisma/**"
+      ]
+    }
+  },
+  "extends": [],
+  "pipeline": {
+    "build": {
+      "dependsOn": [
+        "^build",
+        "generate",
+        "type-check"
+      ],
+      "outputs": [
+        ".next/**",
+        "dist/**"
+      ]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "cache": true
+    },
+    "type-check": {
+      "cache": true
+    },
+    "test": {
+      "cache": true,
+      "dependsOn": [
+        "^build"
+      ]
+    },
+    "test:watch": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:migrate": {
+      "cache": false
+    },
+    "db:seed": {
+      "cache": false,
+      "dependsOn": [
+        "db:migrate"
+      ]
+    },
+    "generate": {
+      "cache": true
+    }
+  }
+}
