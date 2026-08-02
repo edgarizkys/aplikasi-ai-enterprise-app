@@ -1,0 +1,1 @@
+// errorHandler.ts - Fallback template (LLM unavailable)
