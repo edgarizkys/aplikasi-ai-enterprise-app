@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Ai Enterprise - Enterprise Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Plus Jakarta Sans', sans-serif; scrollbar-width: thin; scrollbar-color: #475569 transparent; }
+        :root { --gf: #6B7280; --gt: #374151; }
+        .glass { background: linear-gradient(135deg, rgba(15,23,42,.92), rgba(30,41,59,.88)); border: 1px solid rgba(148,163,184,.12); backdrop-filter: blur(16px); }
+        .stat-card { background: linear-gradient(135deg, rgba(15,23,42,.95), rgba(30,41,59,.9)); border: 1px solid rgba(148,163,184,.1); transition: transform .2s, border-color .2s; }
+        .stat-card:hover { transform: translateY(-3px); border-color: #6B728080; }
+        .btn-primary { background: linear-gradient(135deg, #6B7280, #374151); color: #fff; padding: 0.6rem 1.25rem; border-radius: 0.75rem; font-weight: 700; transition: all .2s; box-shadow: 0 4px 14px #6B728040; }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 50; display: flex; align-items: center; justify-content: center; }
+        .fade-in { animation: fadeIn .25s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        [x-cloak] { display: none !important; }
+    </style>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { 'gf': '#6B7280', 'gt': '#374151' } } } };
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen" x-data="dashboardApp()" x-init="initAuth()">
+
+    <!-- TOP NAVIGATION -->
+    <nav class="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/85 backdrop-blur-xl">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-gf to-gt text-lg font-extrabold text-white shadow-lg">
+                    💼
+                </a>
+                <div>
+                    <h1 class="text-base font-extrabold text-white">Aplikasi Ai Enterprise</h1>
+                    <p class="text-[10px] text-slate-400">Enterprise Operations Dashboard</p>
+                </div>
+            </div>
+
+            <!-- TABS -->
+            <div class="hidden md:flex items-center gap-2 bg-slate-900/60 p-1.5 rounded-2xl border border-slate-800">
+                
+            <button @click="activeTab = 'items'; search = '';"
+                    :class="activeTab === 'items' ? 'bg-gradient-to-r from-gf to-gt text-white font-bold shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'"
+                    class="px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2">
+                <span>Items</span>
+                <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-300" x-text="(data['items'] || []).length"></span>
+            </button>
+            </div>
+
+            <!-- USER PROFILE & LOGOUT -->
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="text-xs text-slate-400 hover:text-white transition-colors hidden sm:block">Landing Page</a>
+                <div class="h-4 w-px bg-slate-800 hidden sm:block"></div>
+                <div class="flex items-center gap-2.5 glass px-3 py-1.5 rounded-xl border border-slate-800">
+                    <div class="w-7 h-7 rounded-full bg-gradient-to-br from-gf to-gt flex items-center justify-center text-xs font-bold text-white" x-text="user.name ? user.name[0].toUpperCase() : 'U'"></div>
+                    <div class="text-left hidden sm:block">
+                        <div class="text-xs font-bold text-white" x-text="user.name || 'User Admin'"></div>
+                        <div class="text-[10px] text-slate-400" x-text="user.email || 'admin@domain.com'"></div>
+                    </div>
+                </div>
+                <button @click="logout()" title="Keluar / Logout" class="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- MOBILE TABS -->
+        <div class="md:hidden flex items-center gap-2 overflow-x-auto px-4 py-2 border-t border-slate-800/50">
+            
+            <button @click="activeTab = 'items'; search = '';"
+                    :class="activeTab === 'items' ? 'bg-gradient-to-r from-gf to-gt text-white font-bold shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'"
+                    class="px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2">
+                <span>Items</span>
+                <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-300" x-text="(data['items'] || []).length"></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+        <!-- STAT CARDS OVERVIEW -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-4">
+            <template x-for="e in entitiesSchema" :key="e.name">
+                <div class="stat-card p-5 rounded-2xl glass flex items-center justify-between cursor-pointer" @click="activeTab = e.name; search = '';">
+                    <div>
+                        <div class="text-xs font-semibold text-slate-400" x-text="e.label"></div>
+                        <div class="text-2xl font-extrabold text-white mt-1" x-text="(data[e.name] || []).length"></div>
+                        <div class="text-[10px] text-emerald-400 mt-1 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            Terhubung ke Server DB
+                        </div>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-lg">💼</div>
+                </div>
+            </template>
+        </div>
+
+        <!-- DYNAMIC SECTIONS -->
+        
+        <div x-show="activeTab === 'items'" class="space-y-4 fade-in">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass p-4 rounded-2xl border border-slate-800">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-gf to-gt flex items-center justify-center text-lg shadow-md">💼</div>
+                    <div>
+                        <h2 class="text-base font-bold text-white">Kelola Data Items</h2>
+                        <p class="text-xs text-slate-400">Total <span x-text="filteredData('items').length"></span> item terdaftar</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <input type="text" x-model="search" placeholder="Cari items..." class="bg-slate-900 border border-slate-700 text-xs text-white rounded-xl px-3 py-2 pl-8 focus:outline-none focus:border-gf w-44 sm:w-56">
+                        <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                    <button @click="exportCSV('items')" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 border border-slate-700">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Export CSV
+                    </button>
+                    <button @click="openAddModal('items')" class="btn-primary text-xs flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Tambah Items
+                    </button>
+                </div>
+            </div>
+
+            <!-- TABLE -->
+            <div class="glass border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-900/80 border-b border-slate-800">
+                            <tr>
+                                <th class="p-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400">Nama</th><th class="p-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400">Deskripsi</th><th class="p-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400">Status</th>
+                                <th class="p-3 text-right text-[11px] font-bold uppercase tracking-wider text-slate-400">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/50">
+                            <template x-for="(item, index) in filteredData('items')" :key="item.id || index">
+                                <tr class="hover:bg-slate-800/30 transition-colors">
+                                    <td class="p-3 font-medium text-slate-200 text-xs" x-text="item.name || '-'"></td><td class="p-3 font-medium text-slate-200 text-xs" x-text="item.description || '-'"></td><td class="p-3 font-medium text-slate-200 text-xs" x-text="item.status || '-'"></td>
+                                    <td class="p-3 text-right">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <button @click="openEditModal('items', item)" class="px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 rounded-lg text-xs font-semibold transition-all">
+                                                Edit
+                                            </button>
+                                            <button @click="deleteItem('items', item)" class="px-2.5 py-1 bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 rounded-lg text-xs font-semibold transition-all">
+                                                Hapus
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                            <tr x-show="filteredData('items').length === 0">
+                                <td colspan="4" class="p-8 text-center text-slate-500 text-xs">
+                                    Tidak ada data items yang ditemukan.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- UNIFIED CRUD MODAL (ADD / EDIT) -->
+    <div x-show="showModal" x-cloak class="modal-overlay fade-in" @click.self="showModal = false">
+        <div class="glass w-full max-w-md p-6 rounded-3xl border border-slate-700 shadow-2xl relative" @click.stop>
+            <div class="flex items-center justify-between mb-6 pb-3 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-gf to-gt flex items-center justify-center text-sm font-bold text-white">✏️</div>
+                    <h3 class="text-base font-bold text-white" x-text="editItem ? 'Edit Data ' + activeEntityLabel : 'Tambah Data ' + activeEntityLabel"></h3>
+                </div>
+                <button @click="showModal = false" class="text-slate-400 hover:text-white text-xl font-bold p-1">&times;</button>
+            </div>
+
+            <form @submit.prevent="saveModal()">
+                <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+                    <template x-for="f in activeFields" :key="f.key">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-300 mb-1" x-text="f.label"></label>
+                            <input :type="f.type === 'number' ? 'number' : 'text'"
+                                   x-model="form[f.key]"
+                                   :placeholder="'Masukkan ' + f.label.toLowerCase()"
+                                   class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gf focus:ring-1 focus:ring-gf transition-all">
+                        </div>
+                    </template>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-slate-800">
+                    <button type="button" @click="showModal = false" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-all">
+                        Batal
+                    </button>
+                    <button type="submit" class="btn-primary text-xs">
+                        <span x-text="editItem ? 'Simpan Perubahan' : 'Tambah Sekarang'"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div x-show="toast.show" x-cloak class="fixed bottom-6 right-6 z-50 glass px-4 py-3 rounded-2xl border border-emerald-500/30 text-xs font-bold text-emerald-400 shadow-2xl flex items-center gap-2.5 fade-in">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span x-text="toast.message"></span>
+    </div>
+
+    <script>
+        function dashboardApp() {
+            return {
+                user: { name: 'User Admin', email: 'admin@domain.com' },
+                entitiesSchema: [{"name": "items", "label": "Items", "fields": [{"key": "name", "label": "Nama", "type": "text"}, {"key": "description", "label": "Deskripsi", "type": "text"}, {"key": "status", "label": "Status", "type": "text"}]}],
+                data: {"items": [{"id": 1, "name": "Contoh Nama", "description": "Contoh Deskripsi", "status": "Contoh Status"}]},
+                activeTab: 'items',
+                search: '',
+                showModal: false,
+                editItem: null,
+                form: {},
+                toast: { show: false, message: '' },
+
+                initAuth() {
+                    const token = localStorage.getItem('app_auth_token');
+                    if (!token) {
+                        // Fallback fallback login for demo if token not set
+                        localStorage.setItem('app_auth_token', 'demo_' + Date.now());
+                        localStorage.setItem('app_user', JSON.stringify({ email: 'admin@domain.com', name: 'User Admin' }));
+                    }
+                    const u = localStorage.getItem('app_user');
+                    if (u) {
+                        try { this.user = JSON.parse(u); } catch(e) {}
+                    }
+                },
+
+                logout() {
+                    localStorage.removeItem('app_auth_token');
+                    localStorage.removeItem('app_user');
+                    window.location.href = 'login.html';
+                },
+
+                get activeEntityObj() {
+                    return this.entitiesSchema.find(e => e.name === this.activeTab) || this.entitiesSchema[0];
+                },
+
+                get activeEntityLabel() {
+                    return this.activeEntityObj ? this.activeEntityObj.label : '';
+                },
+
+                get activeFields() {
+                    return this.activeEntityObj ? this.activeEntityObj.fields : [];
+                },
+
+                filteredData(ename) {
+                    const list = this.data[ename] || [];
+                    if (!this.search.trim()) return list;
+                    const q = this.search.toLowerCase();
+                    return list.filter(item => {
+                        return Object.values(item).some(val => String(val).toLowerCase().includes(q));
+                    });
+                },
+
+                showToast(msg) {
+                    this.toast.message = msg;
+                    this.toast.show = true;
+                    setTimeout(() => { this.toast.show = false; }, 3000);
+                },
+
+                openAddModal(ename) {
+                    this.activeTab = ename;
+                    this.editItem = null;
+                    this.form = {};
+                    this.activeFields.forEach(f => {
+                        this.form[f.key] = '';
+                    });
+                    this.showModal = true;
+                },
+
+                openEditModal(ename, item) {
+                    this.activeTab = ename;
+                    this.editItem = item;
+                    this.form = { ...item };
+                    this.showModal = true;
+                },
+
+                saveModal() {
+                    const list = this.data[this.activeTab] || [];
+                    if (this.editItem) {
+                        // Update
+                        const idx = list.findIndex(i => i.id === this.editItem.id);
+                        if (idx !== -1) {
+                            list[idx] = { ...this.form };
+                        }
+                        this.showToast('Data ' + this.activeEntityLabel + ' berhasil diperbarui!');
+                    } else {
+                        // Create
+                        const newItem = { ...this.form, id: Date.now() };
+                        list.unshift(newItem);
+                        this.showToast('Data ' + this.activeEntityLabel + ' baru berhasil ditambahkan!');
+                    }
+                    this.data[this.activeTab] = list;
+                    this.showModal = false;
+                },
+
+                deleteItem(ename, item) {
+                    if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+                        this.data[ename] = (this.data[ename] || []).filter(i => i.id !== item.id);
+                        this.showToast('Data berhasil dihapus!');
+                    }
+                },
+
+                exportCSV(ename) {
+                    const list = this.data[ename] || [];
+                    if (!list.length) return alert('Tidak ada data untuk diexport!');
+                    const headers = Object.keys(list[0]).join(',');
+                    const rows = list.map(r => Object.values(r).map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+                    const csvContent = 'data:text/csv;charset=utf-8,' + encodeURIComponent(headers + '\n' + rows);
+                    const link = document.createElement('a');
+                    link.setAttribute('href', csvContent);
+                    link.setAttribute('download', ename + '_export.csv');
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
